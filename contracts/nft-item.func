@@ -22,31 +22,44 @@ int min_tons_for_storage() asm "50000000 PUSHINT"; ;; 0.05 TON
 ;;
 ;;  Storage
 ;;
-;;  uint64 index
-;;  MsgAddressInt collection_address
 ;;  MsgAddressInt owner_address
+;;  MsgAddressInt collection_address
+;;  uint64 index
 ;;  cell content
 ;;
 
 (int, int, slice, slice, cell) load_data() {
     slice ds = get_data().begin_parse();
-    var (index, collection_address) = (ds~load_uint(64), ds~load_msg_addr());
+    var (owner_address, collection_address) = (ds~load_msg_addr(), ds~load_msg_addr());
     if (ds.slice_bits() > 0) {
-      return (-1, index, collection_address, ds~load_msg_addr(), ds~load_ref());
+      return (-1, ds~load_uint(64), collection_address, owner_address, ds~load_ref());
     } else {
-      return (0, index, collection_address, null(), null()); ;; nft not initialized yet
+      return (0, 0, collection_address, owner_address, null()); ;; nft not initialized yet
     }
 }
 
-() store_data(int index, slice collection_address, slice owner_address, cell content) impure {
+() store_data(slice owner_address, slice collection_address, int index, cell content) impure {
     set_data(
         begin_cell()
-            .store_uint(index, 64)
-            .store_slice(collection_address)
             .store_slice(owner_address)
+            .store_slice(collection_address)
+            .store_uint(index, 64)
             .store_ref(content)
             .end_cell()
     );
+}
+
+() refund_fee(slice response_address, int msg_value) {
+    if ((response_address.preload_uint(2) != 0) & (msg_value > 0)) {
+        var msg_excesses = begin_cell()
+            .store_uint(0x10, 6)
+            .store_slice(response_address)
+            .store_coins(msg_value)
+            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+            .store_uint(op::excesses(), 32)
+            .store_uint(0, 64);
+        send_raw_message(msg_excesses.end_cell(), 2);
+    }
 }
 
 () send_msg(slice to_address, int amount, int op, int query_id, builder payload, int send_mode) impure inline {
@@ -63,37 +76,6 @@ int min_tons_for_storage() asm "50000000 PUSHINT"; ;; 0.05 TON
   }
 
   send_raw_message(msg.end_cell(), send_mode);
-}
-
-() transfer_ownership(int my_balance, int index, slice collection_address, slice owner_address, cell content, slice sender_address, int query_id, slice in_msg_body, int fwd_fees) impure inline {
-    throw_unless(401, equal_slices(sender_address, owner_address));
-
-    slice new_owner_address = in_msg_body~load_msg_addr();
-    force_chain(new_owner_address);
-    slice response_destination = in_msg_body~load_msg_addr();
-    in_msg_body~load_int(1); ;; this nft don't use custom_payload
-    int forward_amount = in_msg_body~load_coins();
-
-    int rest_amount = my_balance - min_tons_for_storage();
-    if (forward_amount) {
-      rest_amount -= (forward_amount + fwd_fees);
-    }
-    int need_response = response_destination.preload_uint(2) != 0; ;; if NOT addr_none: 00
-    if (need_response) {
-      rest_amount -= fwd_fees;
-    }
-
-    throw_unless(402, rest_amount >= 0); ;; base nft spends fixed amount of gas, will not check for response
-
-    if (forward_amount) {
-      send_msg(new_owner_address, forward_amount, op::ownership_assigned(), query_id, begin_cell().store_slice(owner_address).store_slice(in_msg_body), 1);  ;; paying fees, revert on errors
-    }
-    if (need_response) {
-      force_chain(response_destination);
-      send_msg(response_destination, rest_amount, op::excesses(), query_id, null(), 1); ;; paying fees, revert on errors
-    }
-
-    store_data(index, collection_address, new_owner_address, content);
 }
 
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -115,21 +97,23 @@ int min_tons_for_storage() asm "50000000 PUSHINT"; ;; 0.05 TON
     cs~load_coins(); ;; skip ihr_fee
     int fwd_fee = cs~load_coins(); ;; we use message fwd_fee for estimation of forward_payload costs
 
-
     (int init?, int index, slice collection_address, slice owner_address, cell content) = load_data();
     if (~ init?) {
       throw_unless(405, equal_slices(collection_address, sender_address));
-      store_data(index, collection_address, in_msg_body~load_msg_addr(), in_msg_body~load_ref());
+      store_data(owner_address, collection_address, in_msg_body~load_uint(64), in_msg_body~load_ref());
+      
+      int ton_balance_before_msg = my_balance - msg_value;
+      int storage_fee = ITEM_MIN_TON_STORAGE - min(ton_balance_before_msg, ITEM_MIN_TON_STORAGE);
+      int remain_msg_value = msg_value - ITEM_MINT_FEE - storage_fee;
+      refund_fee(owner_address, remain_msg_value);
       return ();
+    } else {
+      throw_if(406, equal_slices(collection_address, sender_address));
     }
 
     int op = in_msg_body~load_uint(32);
     int query_id = in_msg_body~load_uint(64);
 
-    if (op == op::transfer()) {
-      transfer_ownership(my_balance, index, collection_address, owner_address, content, sender_address, query_id, in_msg_body, fwd_fee);
-      return ();
-    }
     if (op == op::get_static_data()) {
       send_msg(sender_address, 0, op::report_static_data(), query_id, begin_cell().store_uint(index, 256).store_slice(collection_address), 64);  ;; carry all the remaining value of the inbound message
       return ();

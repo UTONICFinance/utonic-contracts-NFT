@@ -8,3 +8,7 @@ int workchain() asm "0 PUSHINT";
 slice null_addr() asm "b{00} PUSHSLICE";
 int flag::regular() asm "0x10 PUSHINT";
 int flag::bounce() asm "0x8 PUSHINT";
+
+const int COLLECTION_MINT_FEE = 500000;
+const int ITEM_MINT_FEE = 500000;
+const int ITEM_MIN_TON_STORAGE = 1000000;
