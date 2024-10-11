@@ -2,8 +2,8 @@
   "name": "utonic-contract",
   "version": "0.0.1",
   "scripts": {
-    "compilecollection": "npx func-js contracts/nft-collection.func --boc build/nft-collection.cell",
-    "compileitem": "npx func-js contracts/nft-item.func --boc build/nft-item.cell"
+    "compilecollection": "npx func-js contracts/badge-collection.func --boc build/badge-collection.cell",
+    "compileitem": "npx func-js contracts/badge-item.func --boc build/badge-item.cell"
   },
   "devDependencies": {
     "@ton/blueprint": "^0.22.0",

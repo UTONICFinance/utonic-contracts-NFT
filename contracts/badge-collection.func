@@ -1,20 +1,20 @@
 #include "imports/stdlib.fc";
 #include "imports/op-codes.fc";
 #include "imports/params.fc";
-;; NFT collection smart contract
+;; Badge collection smart contract
 
 ;; storage scheme
 ;; default#_ royalty_factor:uint16 royalty_base:uint16 royalty_address:MsgAddress = RoyaltyParams;
 ;; storage#_ owner_address:MsgAddress next_item_index:uint64
 ;;           ^[collection_content:^Cell common_content:^Cell]
-;;           nft_item_code:^Cell
+;;           badge_item_code:^Cell
 ;;           royalty:^RoyaltyParams
 ;;           = Storage;
 
 global slice owner_address;
 global int next_item_index;
 global cell content;
-global cell nft_item_code;
+global cell badge_item_code;
 global cell royalty;
 
 () load_global_data() impure inline {
@@ -22,7 +22,7 @@ global cell royalty;
   owner_address = ds~load_msg_addr();
   next_item_index = ds~load_uint(64);
   content = ds~load_ref();
-  nft_item_code = ds~load_ref();
+  badge_item_code = ds~load_ref();
   royalty = ds~load_ref();
 }
 
@@ -31,17 +31,17 @@ global cell royalty;
     .store_slice(owner_address)
     .store_uint(next_item_index, 64)
     .store_ref(content)
-    .store_ref(nft_item_code)
+    .store_ref(badge_item_code)
     .store_ref(royalty)
     .end_cell());
 }
 
-cell calculate_nft_item_state_init(slice user_address, cell nft_item_code) {
+cell calculate_badge_item_state_init(slice user_address, cell badge_item_code) {
   cell data = begin_cell().store_slice(user_address).store_slice(my_address()).end_cell();
-  return begin_cell().store_uint(0, 2).store_dict(nft_item_code).store_dict(data).store_uint(0, 1).end_cell();
+  return begin_cell().store_uint(0, 2).store_dict(badge_item_code).store_dict(data).store_uint(0, 1).end_cell();
 }
 
-slice calculate_nft_item_address(int wc, cell state_init) {
+slice calculate_badge_item_address(int wc, cell state_init) {
   return begin_cell().store_uint(4, 3)
                      .store_int(wc, 8)
                      .store_uint(cell_hash(state_init), 256)
@@ -49,17 +49,17 @@ slice calculate_nft_item_address(int wc, cell state_init) {
                      .begin_parse();
 }
 
-() deploy_nft_item(int item_index, cell nft_item_code, int msg_value, slice user_address, cell nft_content) impure {
-  cell state_init = calculate_nft_item_state_init(user_address, nft_item_code);
-  slice nft_address = calculate_nft_item_address(workchain(), state_init);
+() deploy_badge_item(int item_index, cell badge_item_code, int msg_value, slice user_address, cell badge_content) impure {
+  cell state_init = calculate_badge_item_state_init(user_address, badge_item_code);
+  slice badge_address = calculate_badge_item_address(workchain(), state_init);
   cell msg_body = begin_cell()
       .store_uint(item_index, 64)
-      .store_ref(nft_content)
+      .store_ref(badge_content)
       .end_cell();
   throw_unless(400, msg_value >= COLLECTION_MINT_FEE + ITEM_MINT_FEE);
   var msg = begin_cell()
       .store_uint(0x18, 6)
-      .store_slice(nft_address)
+      .store_slice(badge_address)
       .store_coins(msg_value - COLLECTION_MINT_FEE)
       .store_uint(4 + 2 + 1, 1 + 4 + 4 + 64 + 32 + 1 + 1 + 1)
       .store_ref(state_init)
@@ -109,9 +109,9 @@ slice calculate_nft_item_address(int wc, cell state_init) {
     }
 
     ;;modification - anybody can deploy
-    if (op == 1) { ;; deploy new nft
+    if (op == 1) { ;; deploy new badge
       int item_index = next_item_index;
-      deploy_nft_item(item_index, nft_item_code, msg_value, sender_address, in_msg_body~load_ref());
+      deploy_badge_item(item_index, badge_item_code, msg_value, sender_address, in_msg_body~load_ref());
       next_item_index += 1;
       save_global_data();
       return ();
@@ -141,10 +141,10 @@ slice calculate_nft_item_address(int wc, cell state_init) {
   return (next_item_index, cs~load_ref(), owner_address);
 }
 
-slice get_nft_address_by_user_address(slice user_address) method_id {
+slice get_badge_address_by_user_address(slice user_address) method_id {
     load_global_data();
-    cell state_init = calculate_nft_item_state_init(user_address, nft_item_code);
-    return calculate_nft_item_address(workchain(), state_init);
+    cell state_init = calculate_badge_item_state_init(user_address, badge_item_code);
+    return calculate_badge_item_address(workchain(), state_init);
 }
 
 (int, int, slice) royalty_params() method_id {
@@ -153,7 +153,7 @@ slice get_nft_address_by_user_address(slice user_address) method_id {
      return (rs~load_uint(16), rs~load_uint(16), rs~load_msg_addr());
 }
 
-cell get_nft_content(int index, cell individual_nft_content) method_id {
+cell get_badge_content(int index, cell individual_badge_content) method_id {
   load_global_data();
   slice cs = content.begin_parse();
   cs~load_ref();
@@ -161,6 +161,6 @@ cell get_nft_content(int index, cell individual_nft_content) method_id {
   return (begin_cell()
                       .store_uint(1, 8) ;; offchain tag
                       .store_slice(common_content)
-                      .store_ref(individual_nft_content)
+                      .store_ref(individual_badge_content)
           .end_cell());
 }

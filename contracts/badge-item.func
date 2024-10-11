@@ -2,7 +2,7 @@
 #include "imports/op-codes.fc";
 #include "imports/params.fc";
 ;;
-;;  TON NFT Item Smart Contract
+;;  TON Badge Item Smart Contract
 ;;
 
 {-
@@ -34,7 +34,7 @@ int min_tons_for_storage() asm "50000000 PUSHINT"; ;; 0.05 TON
     if (ds.slice_bits() > 0) {
       return (-1, ds~load_uint(64), collection_address, owner_address, ds~load_ref());
     } else {
-      return (0, 0, collection_address, owner_address, null()); ;; nft not initialized yet
+      return (0, 0, collection_address, owner_address, null()); ;; badge not initialized yet
     }
 }
 
@@ -114,6 +114,14 @@ int min_tons_for_storage() asm "50000000 PUSHINT"; ;; 0.05 TON
     int op = in_msg_body~load_uint(32);
     int query_id = in_msg_body~load_uint(64);
 
+    if (op == 1) {
+      ;; change content
+      throw_unless(401, equal_slices(sender_address, owner_address));
+      content = in_msg_body~load_ref();
+      store_data(owner_address, collection_address, index, content);
+      return ();
+    }
+
     if (op == op::get_static_data()) {
       send_msg(sender_address, 0, op::report_static_data(), query_id, begin_cell().store_uint(index, 256).store_slice(collection_address), 64);  ;; carry all the remaining value of the inbound message
       return ();
@@ -125,7 +133,7 @@ int min_tons_for_storage() asm "50000000 PUSHINT"; ;; 0.05 TON
 ;;  GET Methods
 ;;
 
-(int, int, slice, slice, cell) get_nft_data() method_id {
+(int, int, slice, slice, cell) get_badge_data() method_id {
   (int init?, int index, slice collection_address, slice owner_address, cell content) = load_data();
   return (init?, index, collection_address, owner_address, content);
 }
