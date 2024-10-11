@@ -1,7 +1,7 @@
 import { getHttpEndpoint } from "@orbs-network/ton-access";
 import { mnemonicToWalletKey } from "ton-crypto";
 import { TonClient, WalletContractV4, Address } from "@ton/ton";
-import NFTCollection from "../wrappers/NFTCollection"; // this is the interface class we just implemented
+import BadgeCollection from "../wrappers/BadgeCollection"; // this is the interface class we just implemented
 import { loadIni } from "../libs/config";
 import { encodeOffChainContent } from "../libs/cells";
 
@@ -25,16 +25,16 @@ export async function run() {
   const seqno = await walletContract.getSeqno();
 
   // open Counter instance by address
-  const nftCollectionAddressStr = config.nft_collection;
-  const nftCollectionAddress = Address.parse(nftCollectionAddressStr); // replace with your address from step 8
-  const nftCollection = new NFTCollection(nftCollectionAddress);
-  const nftCollectionContract = client.open(nftCollection);
+  const badgeCollectionAddressStr = config.badge_collection;
+  const badgeCollectionAddress = Address.parse(badgeCollectionAddressStr); // replace with your address from step 8
+  const badgeCollection = new BadgeCollection(badgeCollectionAddress);
+  const badgeCollectionContract = client.open(badgeCollection);
 
-  const nftItemContent = config.nft_item_content;
-  const nftContentCell = encodeOffChainContent(nftItemContent);
+  const badgeItemContent = config.badge_item_content;
+  const badgeContentCell = encodeOffChainContent(badgeItemContent);
   // send the increment transaction
 
-  await nftCollectionContract.sendMint(walletSender, nftContentCell, "0.02");
+  await badgeCollectionContract.sendMint(walletSender, badgeContentCell, "0.02");
 
   // wait until confirmed
   let currentSeqno = seqno;

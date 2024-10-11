@@ -3,7 +3,7 @@ import * as fs from "fs";
 import { getHttpEndpoint } from "@orbs-network/ton-access";
 import { mnemonicToWalletKey } from "ton-crypto";
 import { TonClient, Cell, WalletContractV4 } from "@ton/ton";
-import NFTCollection from "../wrappers/NFTCollection";
+import BadgeCollection from "../wrappers/BadgeCollection";
 import { loadIni } from "../libs/config";
 
 export async function run() {
@@ -19,14 +19,14 @@ export async function run() {
   const wallet = WalletContractV4.create({ publicKey: key.publicKey, workchain: 0 });
 
   // prepare minter's initial code and data cells for deployment
-  const collectionCode = Cell.fromBoc(fs.readFileSync("build/nft-collection.cell"))[0];
-  const itemCode = Cell.fromBoc(fs.readFileSync("build/nft-item.cell"))[0];
+  const collectionCode = Cell.fromBoc(fs.readFileSync("build/badge-collection.cell"))[0];
+  const itemCode = Cell.fromBoc(fs.readFileSync("build/badge-item.cell"))[0];
   
-  const nftCollection = NFTCollection.createForDeploy(
+  const badgeCollection = BadgeCollection.createForDeploy(
     collectionCode,
-    NFTCollection.initData(
+    BadgeCollection.initData(
         wallet.address,
-        "utonic nft collection",
+        "utonic badge collection",
         itemCode,
         1,
         1000,
@@ -35,8 +35,8 @@ export async function run() {
   );
 
   // exit if contract is already deployed
-  console.log("contract address:", nftCollection.address.toString());
-  if (await client.isContractDeployed(nftCollection.address)) {
+  console.log("contract address:", badgeCollection.address.toString());
+  if (await client.isContractDeployed(badgeCollection.address)) {
     return console.log("contract already deployed");
   }
 
@@ -46,8 +46,8 @@ export async function run() {
   const seqno = await walletContract.getSeqno();
 
   // send the deploy transaction
-  const nftCollectionContract = client.open(nftCollection);
-  await nftCollectionContract.sendDeploy(walletSender);
+  const badgeCollectionContract = client.open(badgeCollection);
+  await badgeCollectionContract.sendDeploy(walletSender);
 
   // wait until confirmed
   let currentSeqno = seqno;
