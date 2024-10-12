@@ -2,9 +2,10 @@
 import * as fs from "fs";
 import { getHttpEndpoint } from "@orbs-network/ton-access";
 import { mnemonicToWalletKey } from "ton-crypto";
-import { TonClient, Cell, WalletContractV4 } from "@ton/ton";
+import { TonClient, Cell, WalletContractV4, Address } from "@ton/ton";
 import BadgeCollection from "../wrappers/BadgeCollection";
 import { loadIni } from "../libs/config";
+import { encodeOffChainContent } from "../libs/cells";
 
 export async function run() {
   // open wallet v4 (notice the correct wallet version here)
@@ -22,15 +23,18 @@ export async function run() {
   const collectionCode = Cell.fromBoc(fs.readFileSync("build/badge-collection.cell"))[0];
   const itemCode = Cell.fromBoc(fs.readFileSync("build/badge-item.cell"))[0];
   
+  // tmp content, will be changed by admin later
+  const content = encodeOffChainContent("utonic badge collection");
+
   const badgeCollection = BadgeCollection.createForDeploy(
     collectionCode,
     BadgeCollection.initData(
-        wallet.address,
-        "utonic badge collection",
+        Address.parse(config.admin_address),
+        content,
         itemCode,
-        1,
-        1000,
-        wallet.address
+        Number(Address.parse(config.numerator)),
+        Number(Address.parse(config.denominator)),
+        Address.parse(config.destination)
     )
   );
 
