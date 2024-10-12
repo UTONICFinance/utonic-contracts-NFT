@@ -32,8 +32,13 @@ export async function run() {
   const badgeCollectionContract = client.open(badgeCollection);
 
   const badgeItemAddress = await badgeCollectionContract.getBadgeAddressByUser(wallet.address)
+
+  console.log('badge item address: ', badgeItemAddress.toString())
+
   const badgeItem = new BadgeItem(badgeItemAddress)
   const badgeItemContract = client.open(badgeItem)
+
+  console.log("content data: ", await badgeItemContract.getBadgeData())
 
   const badgeItemContent = config.badge_item_content;
   const badgeContentCell = encodeOffChainContent(badgeItemContent);
