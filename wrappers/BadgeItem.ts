@@ -59,6 +59,17 @@ export default class BadgeItem implements Contract {
       body: messageBody
     });
   }
+  
+  async sendGetStaticData(provider: ContractProvider, via: Sender, value: string) {
+    const messageBody = beginCell()
+      .storeUint(ITEM_OP_GET_STATIC_DATA, 32) // op 
+      .storeUint(0, 64) // query id
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
 
   async getBadgeData(provider: ContractProvider) {
     const { stack } = await provider.get("get_badge_data", []);
