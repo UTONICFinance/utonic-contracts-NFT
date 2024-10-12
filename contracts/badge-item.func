@@ -119,11 +119,24 @@ int min_tons_for_storage() asm "50000000 PUSHINT"; ;; 0.05 TON
       throw_unless(401, equal_slices(sender_address, owner_address));
       content = in_msg_body~load_ref();
       store_data(owner_address, collection_address, index, content);
+
+      int ton_balance_before_msg = my_balance - msg_value;
+      int storage_fee = ITEM_MIN_TON_STORAGE - min(ton_balance_before_msg, ITEM_MIN_TON_STORAGE);
+      int remain_msg_value = msg_value - ITEM_CHANGE_CONTENT_FEE - storage_fee;
+      refund_fee(owner_address, remain_msg_value);
       return ();
     }
 
     if (op == op::get_static_data()) {
-      send_msg(sender_address, 0, op::report_static_data(), query_id, begin_cell().store_uint(index, 256).store_slice(collection_address), 64);  ;; carry all the remaining value of the inbound message
+      throw_unless(400, msg_value > ITEM_QUERY_FEE + fwd_fee);
+      send_msg(
+        sender_address, 
+        msg_value - ITEM_QUERY_FEE, 
+        op::report_static_data(), 
+        query_id, 
+        begin_cell().store_uint(index, 64).store_slice(collection_address).store_slice(owner_address), 
+        0
+      );
       return ();
     }
     throw(0xffff);
