@@ -43,7 +43,7 @@ export async function run() {
   const badgeItemContent = config.badge_item_content;
   const badgeContentCell = encodeOffChainContent(badgeItemContent);
   // send the increment transaction
-  await badgeItemContract.sendUpdateContent(walletSender, badgeContentCell, "0.02");
+  await badgeItemContract.sendUpdateContent(walletSender, badgeContentCell, wallet.address, "0.02");
 
   // wait until confirmed
   let currentSeqno = seqno;
