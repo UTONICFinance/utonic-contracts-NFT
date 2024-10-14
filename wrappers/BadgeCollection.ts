@@ -116,8 +116,8 @@ export default class BadgeCollection implements Contract {
     const messageBody = beginCell()
       .storeUint(COLLECTION_OP_SWITCH_ITEM_UPDATE_CONTENT, 32) // op 
       .storeUint(0, 64) // query id
-      .storeAddress(itemAddress)
       .storeUint(BigInt(enable), 1)
+      .storeAddress(itemAddress)
       .storeAddress(responseAddress)
       .endCell();
     await provider.internal(via, {
@@ -126,8 +126,8 @@ export default class BadgeCollection implements Contract {
     });
   }
 
-  async getCollectionData(provider: ContractProvider) {
-    const { stack } = await provider.get("get_collection_data", []);
+  async getAllData(provider: ContractProvider) {
+    const { stack } = await provider.get("get_all_data", []);
     const ownerAddress = stack.readAddress();
     const nextItemIndex = stack.readBigNumber();
     const content = stack.readCell();
@@ -139,6 +139,19 @@ export default class BadgeCollection implements Contract {
         content,
         badgeItemCode,
         royalty
+    };
+  }
+
+
+  async getRoyaltyParams(provider: ContractProvider) {
+    const { stack } = await provider.get("royalty_params", []);
+    const numerator = stack.readBigNumber();
+    const denominator = stack.readBigNumber();
+    const destination = stack.readAddress();
+    return {
+      numerator,
+      denominator,
+      destination
     };
   }
 

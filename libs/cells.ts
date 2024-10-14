@@ -3,7 +3,6 @@ import * as fs from "fs";
 import { getHttpEndpoint } from "@orbs-network/ton-access";
 import { mnemonicToWalletKey } from "ton-crypto";
 import { TonClient, Cell, Address, WalletContractV4, beginCell, Dictionary } from "@ton/ton";
-import UTonic from "../wrappers/UTonic";
 
 const OFF_CHAIN_CONTENT_PREFIX = 0x01;
 
