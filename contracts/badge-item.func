@@ -51,7 +51,7 @@ int min_tons_for_storage() asm "50000000 PUSHINT"; ;; 0.05 TON
     );
 }
 
-() refund_fee(slice response_address, int msg_value) {
+() refund_fee(slice response_address, int msg_value) impure inline {
     if ((response_address.preload_uint(2) != 0) & (msg_value > 0)) {
         var msg_excesses = begin_cell()
             .store_uint(0x10, 6)
