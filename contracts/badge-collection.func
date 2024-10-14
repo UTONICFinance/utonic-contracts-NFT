@@ -37,7 +37,11 @@ global cell royalty;
 }
 
 cell calculate_badge_item_state_init(slice user_address, cell badge_item_code) {
-  cell data = begin_cell().store_slice(user_address).store_slice(my_address()).end_cell();
+  cell data = begin_cell()
+    .store_slice(user_address)
+    .store_slice(my_address())
+    .store_uint(1, 1)
+  .end_cell();
   return begin_cell().store_uint(0, 2).store_dict(badge_item_code).store_dict(data).store_uint(0, 1).end_cell();
 }
 
@@ -65,6 +69,67 @@ slice calculate_badge_item_address(int wc, cell state_init) {
       .store_ref(state_init)
       .store_ref(msg_body);
   send_raw_message(msg.end_cell(), 1); ;; pay transfer fees separately, revert on errors
+}
+
+() update_item_content(int query_id, slice in_msg_body, int msg_value) impure {
+    
+    throw_unless(
+        400, 
+        msg_value >= 
+            COLLECTION_UPDATE_ITEM_FEE
+            + ITEM_UPDATE_CONTENT_FEE 
+    );
+
+    int remain_msg_value = msg_value
+        - COLLECTION_UPDATE_ITEM_FEE;
+
+    slice badge_item_address = in_msg_body~load_msg_addr();
+    cell content = in_msg_body~load_ref();
+    slice response_address = in_msg_body~load_msg_addr();
+    cell msg_body = begin_cell()
+        .store_uint(op::item::update_content(), 32)
+        .store_uint(query_id, 64)
+        .store_ref(content)
+        .store_slice(response_address)
+        .end_cell();
+    var msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(badge_item_address)
+        .store_coins(remain_msg_value)
+        .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+        .store_ref(msg_body);
+    send_raw_message(msg.end_cell(), 1);
+}
+
+
+() switch_item_update_content(int query_id, slice in_msg_body, int msg_value) impure {
+    
+    throw_unless(
+        400, 
+        msg_value >= 
+            COLLECTION_SWITCH_ITEM_UPDATE_FEE
+            + ITEM_COLLECTION_SWITCH_UPDATE_FEE 
+    );
+
+    int remain_msg_value = msg_value
+        - COLLECTION_SWITCH_ITEM_UPDATE_FEE;
+
+    int enable = in_msg_body~load_uint(1);
+    slice badge_item_address = in_msg_body~load_msg_addr();
+    slice response_address = in_msg_body~load_msg_addr();
+    cell msg_body = begin_cell()
+        .store_uint(op::item::switch_update_content(), 32)
+        .store_uint(query_id, 64)
+        .store_uint(enable, 1)
+        .store_slice(response_address)
+        .end_cell();
+    var msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(badge_item_address)
+        .store_coins(remain_msg_value)
+        .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+        .store_ref(msg_body);
+    send_raw_message(msg.end_cell(), 1);
 }
 
 () send_royalty_params(slice to_address, int query_id, slice data) impure inline {
@@ -109,7 +174,7 @@ slice calculate_badge_item_address(int wc, cell state_init) {
     }
 
     ;;modification - anybody can deploy
-    if (op == 1) { ;; deploy new badge
+    if (op == op::collection::mint()) { ;; deploy new badge
       int item_index = next_item_index;
       deploy_badge_item(item_index, badge_item_code, msg_value, sender_address, in_msg_body~load_ref());
       next_item_index += 1;
@@ -119,17 +184,27 @@ slice calculate_badge_item_address(int wc, cell state_init) {
 
     throw_unless(401, equal_slices(sender_address, owner_address));
 
-    if (op == 2) { ;; change owner
+    if (op == op::collection::change_owner()) { ;; change owner
       owner_address = in_msg_body~load_msg_addr();
       save_global_data();
       return ();
     }
 
-    if (op == 3) { ;; change content
+    if (op == op::collection::change_content()) { ;; change content
       content = in_msg_body~load_ref();
       save_global_data();
       return ();
     }
+
+    if (op == op::collection::update_item_content()) {
+      update_item_content(query_id, in_msg_body, msg_value);
+    }
+
+    if (op == op::collection::switch_item_update_content()) {
+      switch_item_update_content(query_id, in_msg_body, msg_value);
+      return ();
+    }
+
     throw(0xffff);
 }
 
