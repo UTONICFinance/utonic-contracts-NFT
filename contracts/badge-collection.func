@@ -198,6 +198,7 @@ slice calculate_badge_item_address(int wc, cell state_init) {
 
     if (op == op::collection::update_item_content()) {
       update_item_content(query_id, in_msg_body, msg_value);
+      return ();
     }
 
     if (op == op::collection::switch_item_update_content()) {
