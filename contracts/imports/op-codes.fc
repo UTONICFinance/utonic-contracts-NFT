@@ -10,10 +10,11 @@ int op::report_royalty_params() asm "0xa8cb00ad PUSHINT";
 ;; custom
 
 int op::collection::mint() asm "1 PUSHINT";
-int op::collection::change_owner() asm "2 PUSHINT";
-int op::collection::change_content() asm "3 PUSHINT";
-int op::collection::update_item_content() asm "4 PUSHINT";
-int op::collection::switch_item_update_content() asm "5 PUSHINT";
+int op::collection::update_owner() asm "2 PUSHINT";
+int op::collection::update_content() asm "3 PUSHINT";
+int op::collection::update_royalty() asm "4 PUSHINT";
+int op::collection::update_item_content() asm "5 PUSHINT";
+int op::collection::switch_item_update_content() asm "6 PUSHINT";
 
 int op::item::update_content() asm "1 PUSHINT";
 int op::item::switch_update_content() asm "2 PUSHINT";

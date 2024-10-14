@@ -184,14 +184,27 @@ slice calculate_badge_item_address(int wc, cell state_init) {
 
     throw_unless(401, equal_slices(sender_address, owner_address));
 
-    if (op == op::collection::change_owner()) { ;; change owner
+    if (op == op::collection::update_owner()) { ;; update owner
       owner_address = in_msg_body~load_msg_addr();
       save_global_data();
       return ();
     }
 
-    if (op == op::collection::change_content()) { ;; change content
+    if (op == op::collection::update_content()) { ;; update content
       content = in_msg_body~load_ref();
+      save_global_data();
+      return ();
+    }
+
+    if (op == op::collection::update_royalty()) { ;; update royalty
+      int numerator = in_msg_body~load_uint(16);
+      int denominator = in_msg_body~load_uint(16);
+      slice destination = in_msg_body~load_msg_addr();
+      royalty = begin_cell()
+        .store_uint(numerator, 16)
+        .store_uint(denominator, 16)
+        .store_slice(destination)
+        .end_cell();
       save_global_data();
       return ();
     }
