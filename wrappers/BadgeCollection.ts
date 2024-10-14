@@ -1,6 +1,6 @@
 import { Contract, ContractProvider, Sender, Address, Cell, contractAddress, beginCell, TupleItemSlice } from "@ton/core";
 import { encodeOffChainContent } from "../libs/cells";
-import { COLLECTION_OP_MINT, COLLECTION_OP_SWITCH_ITEM_UPDATE_CONTENT, COLLECTION_OP_UPDATE_CONTENT, COLLECTION_OP_UPDATE_ITEM_CONTENT, COLLECTION_OP_UPDATE_OWNER } from "./opcodes";
+import { COLLECTION_OP_MINT, COLLECTION_OP_SWITCH_ITEM_UPDATE_CONTENT, COLLECTION_OP_UPDATE_CONTENT, COLLECTION_OP_UPDATE_ITEM_CONTENT, COLLECTION_OP_UPDATE_OWNER, COLLECTION_OP_UPDATE_ROYALTY } from "./opcodes";
 export default class BadgeCollection implements Contract {
 
   static initData(
@@ -77,6 +77,20 @@ export default class BadgeCollection implements Contract {
       .storeUint(COLLECTION_OP_UPDATE_CONTENT, 32) // op 
       .storeUint(0, 64) // query id
       .storeRef(content)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendUpdateRoyalty(provider: ContractProvider, via: Sender, numerator: number, denominator: number, destination: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(COLLECTION_OP_UPDATE_ROYALTY, 32) // op 
+      .storeUint(0, 64) // query id
+      .storeUint(numerator, 16)
+      .storeUint(denominator, 16)
+      .storeAddress(destination)
       .endCell();
     await provider.internal(via, {
       value,
