@@ -1,6 +1,6 @@
 import { Contract, ContractProvider, Sender, Address, Cell, contractAddress, beginCell, TupleItemSlice } from "@ton/core";
 import { encodeOffChainContent } from "../libs/cells";
-import { ITEM_OP_GET_STATIC_DATA, ITEM_OP_CHANGE_CONTENT } from "./opcodes";
+import { ITEM_OP_GET_STATIC_DATA, ITEM_OP_UPDATE_CONTENT, ITEM_OP_SWITCH_UPDATE_CONTENT } from "./opcodes";
 export default class BadgeItem implements Contract {
 
   static initData(
@@ -48,11 +48,12 @@ export default class BadgeItem implements Contract {
     });
   }
 
-  async sendUpdateContent(provider: ContractProvider, via: Sender, content: Cell, value: string) {
+  async sendSwitchUpdateContent(provider: ContractProvider, via: Sender, enable: boolean, responseAddress: Address, value: string) {
     const messageBody = beginCell()
-      .storeUint(ITEM_OP_CHANGE_CONTENT, 32) // op 
+      .storeUint(ITEM_OP_SWITCH_UPDATE_CONTENT, 32) // op 
       .storeUint(0, 64) // query id
-      .storeRef(content)
+      .storeUint(BigInt(enable), 1)
+      .storeAddress(responseAddress)
       .endCell();
     await provider.internal(via, {
       value,
@@ -60,6 +61,19 @@ export default class BadgeItem implements Contract {
     });
   }
   
+  async sendUpdateContent(provider: ContractProvider, via: Sender, content: Cell, responseAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(ITEM_OP_UPDATE_CONTENT, 32) // op 
+      .storeUint(0, 64) // query id
+      .storeRef(content)
+      .storeAddress(responseAddress)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
   async sendGetStaticData(provider: ContractProvider, via: Sender, value: string) {
     const messageBody = beginCell()
       .storeUint(ITEM_OP_GET_STATIC_DATA, 32) // op 
@@ -77,12 +91,14 @@ export default class BadgeItem implements Contract {
     const index = stack.readBigNumber();
     const collectionAddress = stack.readAddress();
     const ownerAddress = stack.readCell();
+    const enableUpdateContent = stack.readBigNumber();
     const content = stack.readCell();
     return {
         init,
         index,
         collectionAddress,
         ownerAddress,
+        enableUpdateContent,
         content
     };
   }

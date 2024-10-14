@@ -1,6 +1,6 @@
 import { Contract, ContractProvider, Sender, Address, Cell, contractAddress, beginCell, TupleItemSlice } from "@ton/core";
 import { encodeOffChainContent } from "../libs/cells";
-import { COLLECTION_OP_MINT, COLLECTION_OP_UPDATE_CONTENT, COLLECTION_OP_UPDATE_OWNER } from "./opcodes";
+import { COLLECTION_OP_MINT, COLLECTION_OP_SWITCH_ITEM_UPDATE_CONTENT, COLLECTION_OP_UPDATE_CONTENT, COLLECTION_OP_UPDATE_ITEM_CONTENT, COLLECTION_OP_UPDATE_OWNER } from "./opcodes";
 export default class BadgeCollection implements Contract {
 
   static initData(
@@ -77,6 +77,34 @@ export default class BadgeCollection implements Contract {
       .storeUint(COLLECTION_OP_UPDATE_CONTENT, 32) // op 
       .storeUint(0, 64) // query id
       .storeRef(content)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendUpdateItemContent(provider: ContractProvider, via: Sender, itemAddress: Address, content: Cell, responseAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(COLLECTION_OP_UPDATE_ITEM_CONTENT, 32) // op 
+      .storeUint(0, 64) // query id
+      .storeAddress(itemAddress)
+      .storeRef(content)
+      .storeAddress(responseAddress)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendSwitchItemUpdateContent(provider: ContractProvider, via: Sender, itemAddress: Address, enable: boolean, responseAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(COLLECTION_OP_SWITCH_ITEM_UPDATE_CONTENT, 32) // op 
+      .storeUint(0, 64) // query id
+      .storeAddress(itemAddress)
+      .storeUint(BigInt(enable), 1)
+      .storeAddress(responseAddress)
       .endCell();
     await provider.internal(via, {
       value,
