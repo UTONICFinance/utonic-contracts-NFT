@@ -1,29 +1,17 @@
 #include "imports/stdlib.fc";
 #include "imports/op-codes.fc";
 #include "imports/params.fc";
+#include "imports/utils.fc";
 ;;
 ;;  TON Badge Item Smart Contract
 ;;
-
-{-
-
-    NOTE that this tokens can be transferred within the same workchain.
-
-    This is suitable for most tokens, if you need tokens transferable between workchains there are two solutions:
-
-    1) use more expensive but universal function below to calculate message forward fee for arbitrary destination (see `misc/forward-fee-calc.cs`)
-
-    2) use token holder proxies in target workchain (that way even 'non-universal' token can be used from any workchain)
-
--}
-
-int min_tons_for_storage() asm "50000000 PUSHINT"; ;; 0.05 TON
 
 ;;
 ;;  Storage
 ;;
 ;;  MsgAddressInt owner_address
 ;;  MsgAddressInt collection_address
+;;  uint1 enable_update_content
 ;;  uint64 index
 ;;  cell content
 ;;
@@ -51,18 +39,6 @@ int min_tons_for_storage() asm "50000000 PUSHINT"; ;; 0.05 TON
     );
 }
 
-() refund_fee(slice response_address, int msg_value) impure inline {
-    if ((response_address.preload_uint(2) != 0) & (msg_value > 0)) {
-        var msg_excesses = begin_cell()
-            .store_uint(0x10, 6)
-            .store_slice(response_address)
-            .store_coins(msg_value)
-            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
-            .store_uint(op::excesses(), 32)
-            .store_uint(0, 64);
-        send_raw_message(msg_excesses.end_cell(), 2);
-    }
-}
 
 () send_msg(slice to_address, int amount, int op, int query_id, builder payload, int send_mode) impure inline {
     var msg = begin_cell()
@@ -107,7 +83,7 @@ int min_tons_for_storage() asm "50000000 PUSHINT"; ;; 0.05 TON
         int ton_balance_before_msg = my_balance - msg_value;
         int storage_fee = ITEM_MIN_TON_STORAGE - min(ton_balance_before_msg, ITEM_MIN_TON_STORAGE);
         int remain_msg_value = msg_value - ITEM_MINT_FEE - storage_fee;
-        refund_fee(owner_address, remain_msg_value);
+        refund_fee(0, owner_address, remain_msg_value);
         return ();
     }
 
@@ -128,7 +104,7 @@ int min_tons_for_storage() asm "50000000 PUSHINT"; ;; 0.05 TON
         int ton_balance_before_msg = my_balance - msg_value;
         int storage_fee = ITEM_MIN_TON_STORAGE - min(ton_balance_before_msg, ITEM_MIN_TON_STORAGE);
         int remain_msg_value = msg_value - ITEM_UPDATE_CONTENT_FEE - storage_fee;
-        refund_fee(response_address, remain_msg_value);
+        refund_fee(query_id, response_address, remain_msg_value);
         return ();
     }
 
@@ -143,7 +119,7 @@ int min_tons_for_storage() asm "50000000 PUSHINT"; ;; 0.05 TON
         int ton_balance_before_msg = my_balance - msg_value;
         int storage_fee = ITEM_MIN_TON_STORAGE - min(ton_balance_before_msg, ITEM_MIN_TON_STORAGE);
         int remain_msg_value = msg_value - ITEM_COLLECTION_SWITCH_UPDATE_FEE - storage_fee;
-        refund_fee(response_address, remain_msg_value);
+        refund_fee(query_id, response_address, remain_msg_value);
         return ();
     }
 

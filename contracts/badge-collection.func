@@ -101,7 +101,6 @@ slice calculate_badge_item_address(int wc, cell state_init) {
     send_raw_message(msg.end_cell(), 1);
 }
 
-
 () switch_item_update_content(int query_id, slice in_msg_body, int msg_value) impure {
     
     throw_unless(
@@ -223,6 +222,12 @@ slice calculate_badge_item_address(int wc, cell state_init) {
 }
 
 ;; Get methods
+
+
+(slice, int, cell, cell, cell) get_all_data() method_id {
+  load_global_data();
+  return (owner_address, next_item_index, content, badge_item_code, royalty);
+}
 
 (int, cell, slice) get_collection_data() method_id {
   load_global_data();
