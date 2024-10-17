@@ -1,6 +1,6 @@
-import { Contract, ContractProvider, Sender, Address, Cell, contractAddress, beginCell, TupleItemSlice } from "@ton/core";
+import { Contract, ContractProvider, Sender, Address, Cell, contractAddress, beginCell, TupleItemSlice, TupleItemInt, TupleItemCell } from "@ton/core";
 import { encodeOffChainContent } from "../libs/cells";
-import { COLLECTION_OP_MINT, COLLECTION_OP_SWITCH_ITEM_UPDATE_CONTENT, COLLECTION_OP_UPDATE_CONTENT, COLLECTION_OP_UPDATE_ITEM_CONTENT, COLLECTION_OP_UPDATE_OWNER, COLLECTION_OP_UPDATE_ROYALTY } from "./opcodes";
+import { COLLECITON_OP_GET_ROYALTY_PARAMS, COLLECTION_OP_MINT, COLLECTION_OP_SWITCH_ITEM_UPDATE_CONTENT, COLLECTION_OP_UPDATE_CONTENT, COLLECTION_OP_UPDATE_ITEM_CONTENT, COLLECTION_OP_UPDATE_OWNER, COLLECTION_OP_UPDATE_ROYALTY } from "./opcodes";
 export default class BadgeCollection implements Contract {
 
   static initData(
@@ -60,11 +60,11 @@ export default class BadgeCollection implements Contract {
     });
   }
 
-  async sendUpdateOwner(provider: ContractProvider, via: Sender, newOwner: Address, value: string) {
+  async sendUpdateContent(provider: ContractProvider, via: Sender, content: Cell, value: string) {
     const messageBody = beginCell()
-      .storeUint(COLLECTION_OP_UPDATE_OWNER, 32) // op 
+      .storeUint(COLLECTION_OP_UPDATE_CONTENT, 32) // op 
       .storeUint(0, 64) // query id
-      .storeAddress(newOwner)
+      .storeRef(content)
       .endCell();
     await provider.internal(via, {
       value,
@@ -72,11 +72,11 @@ export default class BadgeCollection implements Contract {
     });
   }
 
-  async sendUpdateContent(provider: ContractProvider, via: Sender, content: Cell, value: string) {
+  async sendUpdateOwner(provider: ContractProvider, via: Sender, newOwner: Address, value: string) {
     const messageBody = beginCell()
-      .storeUint(COLLECTION_OP_UPDATE_CONTENT, 32) // op 
+      .storeUint(COLLECTION_OP_UPDATE_OWNER, 32) // op 
       .storeUint(0, 64) // query id
-      .storeRef(content)
+      .storeAddress(newOwner)
       .endCell();
     await provider.internal(via, {
       value,
@@ -126,6 +126,17 @@ export default class BadgeCollection implements Contract {
     });
   }
 
+  async sendGetRoyaltyParams(provider: ContractProvider, via: Sender, value: string) {
+    const messageBody = beginCell()
+      .storeUint(COLLECITON_OP_GET_ROYALTY_PARAMS, 32) // op 
+      .storeUint(0, 64) // query id
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
   async getAllData(provider: ContractProvider) {
     const { stack } = await provider.get("get_all_data", []);
     const ownerAddress = stack.readAddress();
@@ -142,6 +153,17 @@ export default class BadgeCollection implements Contract {
     };
   }
 
+  async getCollectionData(provider: ContractProvider) {
+    const { stack } = await provider.get("get_collection_data", []);
+    const nextItemIndex = stack.readBigNumber();
+    const content = stack.readCell();
+    const ownerAddress = stack.readAddress();
+    return {
+        nextItemIndex,
+        content,
+        ownerAddress,
+    };
+  }
 
   async getRoyaltyParams(provider: ContractProvider) {
     const { stack } = await provider.get("royalty_params", []);
@@ -153,6 +175,21 @@ export default class BadgeCollection implements Contract {
       denominator,
       destination
     };
+  }
+
+  async getBadgeContent(provider: ContractProvider, itemIdx: bigint, individualBadgeContent: Cell) {
+    const { stack } = await provider.get("get_badge_content", [
+      {
+        type: 'int',
+        value: itemIdx
+      } as TupleItemInt,
+      {
+        type: 'cell',
+        cell: individualBadgeContent
+      } as TupleItemCell,
+    ]);
+    const cell = stack.readCell();
+    return cell;
   }
 
   async getBadgeAddressByUser(provider: ContractProvider, userAddress: Address) {

@@ -2,7 +2,7 @@
 import * as fs from "fs";
 import { getHttpEndpoint } from "@orbs-network/ton-access";
 import { mnemonicToWalletKey } from "ton-crypto";
-import { TonClient, Cell, WalletContractV4, Address } from "@ton/ton";
+import { TonClient, Cell, WalletContractV4, Address, beginCell } from "@ton/ton";
 import BadgeCollection from "../wrappers/BadgeCollection";
 import { loadIni } from "../libs/config";
 import { encodeOffChainContent } from "../libs/cells";
@@ -24,7 +24,10 @@ export async function run() {
   const itemCode = Cell.fromBoc(fs.readFileSync("build/badge-item.cell"))[0];
   
   // tmp content, will be changed by admin later
-  const content = encodeOffChainContent("utonic badge collection");
+  const content = beginCell()
+    .storeRef(encodeOffChainContent("utonic badge collection"))
+    .storeRef(encodeOffChainContent(" "))
+    .endCell();
 
   const badgeCollection = BadgeCollection.createForDeploy(
     collectionCode,
