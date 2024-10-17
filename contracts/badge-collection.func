@@ -1,6 +1,8 @@
 #include "imports/stdlib.fc";
 #include "imports/op-codes.fc";
 #include "imports/params.fc";
+#include "imports/event.fc";
+
 ;; Badge collection smart contract
 
 ;; storage scheme
@@ -69,6 +71,7 @@ slice calculate_badge_item_address(int wc, cell state_init) {
       .store_ref(state_init)
       .store_ref(msg_body);
   send_raw_message(msg.end_cell(), 1); ;; pay transfer fees separately, revert on errors
+  emit_mint_log(item_index, user_address, badge_address);
 }
 
 () update_item_content(int query_id, slice in_msg_body, int msg_value) impure {
