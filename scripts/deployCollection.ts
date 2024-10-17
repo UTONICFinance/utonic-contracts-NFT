@@ -35,8 +35,8 @@ export async function run() {
         Address.parse(config.admin_address),
         content,
         itemCode,
-        Number(Address.parse(config.numerator)),
-        Number(Address.parse(config.denominator)),
+        Number(config.numerator),
+        Number(config.denominator),
         Address.parse(config.destination)
     )
   );
