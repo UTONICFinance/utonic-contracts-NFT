@@ -30,8 +30,9 @@ export async function run() {
   const badgeCollectionAddress = Address.parse(badgeCollectionAddressStr); // replace with your address from step 8
   const badgeCollection = new BadgeCollection(badgeCollectionAddress);
   const badgeCollectionContract = client.open(badgeCollection);
-
-  const badgeItemAddress = await badgeCollectionContract.getBadgeAddressByUser(wallet.address)
+  
+  const userAddress = Address.parse(config.user_address)
+  const badgeItemAddress = await badgeCollectionContract.getBadgeAddressByUser(userAddress)
 
   console.log('badge item address: ', badgeItemAddress.toString())
 
